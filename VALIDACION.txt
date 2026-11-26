@@ -1,0 +1,18 @@
+Comparacion original / version legible (Linux, C++17).
+Archivo | salida original | salida nueva | consola y traza iguales | HTML identico
+tests/Prueba_Ambitos.py | 0 | 0 | True | True
+tests/Prueba_Errores_Mixtos.py | 2 | 2 | True | True
+tests/Prueba_Errores_Semanticos.py | 3 | 3 | True | True
+tests/Prueba_Errores_Tres_Fases.py | 1 | 1 | True | True
+tests/eof_nonl.py | 0 | 0 | True | True
+tests/ids_ok.py | 0 | 0 | True | True
+tests/int_as_literal_bad.py | 2 | 2 | True | True
+tests/nested.py | 0 | 0 | True | True
+tests/print_call.py | 0 | 0 | True | True
+tests/strtype_bad.py | 2 | 2 | True | True
+tests/strtype_ok.py | 0 | 0 | True | True
+tests/test1_factorial.py | 0 | 0 | True | True
+tests/test2_clases.py | 0 | 0 | True | True
+tests/test3_control.py | 3 | 3 | True | True
+tests/test4_error_sintactico.py | 2 | 2 | True | True
+Test_1.txt | 1 | 1 | True | True

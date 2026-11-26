@@ -5,192 +5,320 @@
 #include <initializer_list>
 #include <stdexcept>
 
-namespace {
+namespace
+{
+    void Escribir_Texto(std::ostream& Salida, std::string_view Texto)
+    {
+        char Digitos[] = "0123456789abcdef";
+        Salida << '"';
+        for (unsigned char Caracter : Texto)
+        {
+            if (Caracter == '"' || Caracter == '\\')
+            {
+                Salida << '\\' << Caracter;
+            }
 
-void Escribir_Texto(std::ostream& Salida, std::string_view Texto) {
+            else if (Caracter < 32 || Caracter == '<' || Caracter == '>' || Caracter == '&')
+            {
+                Salida << "\\u00" << Digitos[Caracter / 16] << Digitos[Caracter % 16];
+            }
 
-    char Digitos[] = "0123456789abcdef";
-    Salida << '"';
-    for (unsigned char Caracter : Texto) {
-        if (Caracter == '"' || Caracter == '\\') {
-            Salida << '\\' << Caracter;
+            else
+            {
+                Salida << Caracter;
+            }
         }
+        Salida << '"';
+    }
 
-        else if (Caracter < 32 || Caracter == '<' || Caracter == '>' || Caracter == '&') {
-            Salida << "\\u00" << Digitos[Caracter / 16] << Digitos[Caracter % 16];
+    void Escribir_Fila(std::ostream& Salida, std::initializer_list<std::string_view> Celdas)
+    {
+        Salida << '[';
+        std::string_view Separador;
+        for (std::string_view Celda : Celdas)
+        {
+            Salida << Separador;
+            Escribir_Texto(Salida, Celda);
+            Separador = ",";
         }
+        Salida << ']';
+    }
 
-        else {
-            Salida << Caracter;
+    std::string_view Grupo_Nodo(Tipo_Nodo Clase)
+    {
+        switch (Clase)
+        {
+            case Tipo_Nodo::Program:
+                return "programa";
+            case Tipo_Nodo::ClassDef:
+            case Tipo_Nodo::FunctionDef:
+            case Tipo_Nodo::VarDef:
+            case Tipo_Nodo::Parameter:
+            case Tipo_Nodo::GlobalDecl:
+            case Tipo_Nodo::NonlocalDecl:
+                return "declaracion";
+            case Tipo_Nodo::TypeName:
+            case Tipo_Nodo::ListType:
+                return "tipo";
+            case Tipo_Nodo::Block:
+            case Tipo_Nodo::If:
+            case Tipo_Nodo::Elif:
+            case Tipo_Nodo::Else:
+            case Tipo_Nodo::While:
+            case Tipo_Nodo::For:
+            case Tipo_Nodo::Pass:
+            case Tipo_Nodo::Return:
+            case Tipo_Nodo::ExprStmt:
+            case Tipo_Nodo::Assign:
+                return "sentencia";
+            default:
+                return "expresion";
         }
     }
-    Salida << '"';
-}
 
-void Escribir_Fila(std::ostream& Salida, std::initializer_list<std::string_view> Celdas) {
-
-    Salida << '[';
-    std::string_view Separador;
-    for (std::string_view Celda : Celdas) {
-        Salida << Separador;
-        Escribir_Texto(Salida, Celda);
-        Separador = ",";
-    }
-    Salida << ']';
-}
-
-std::string_view Grupo_Nodo(Tipo_Nodo Clase) {
-
-    switch (Clase) {
-        case Tipo_Nodo::Program:
-            return "programa";
-        case Tipo_Nodo::ClassDef: case Tipo_Nodo::FunctionDef: case Tipo_Nodo::VarDef:
-        case Tipo_Nodo::Parameter: case Tipo_Nodo::GlobalDecl: case Tipo_Nodo::NonlocalDecl:
-            return "declaracion";
-        case Tipo_Nodo::TypeName: case Tipo_Nodo::ListType:
-            return "tipo";
-        case Tipo_Nodo::Block: case Tipo_Nodo::If: case Tipo_Nodo::Elif: case Tipo_Nodo::Else:
-        case Tipo_Nodo::While: case Tipo_Nodo::For: case Tipo_Nodo::Pass: case Tipo_Nodo::Return:
-        case Tipo_Nodo::ExprStmt: case Tipo_Nodo::Assign:
-            return "sentencia";
-        default:
-            return "expresion";
-    }
-}
-
-std::string_view Rol_Nodo(AST& Arbol, Nodo_AST& Padre, size_t Indice) {
-
-    switch (Padre.Clase) {
-        case Tipo_Nodo::ClassDef: return Indice == 0 ? "Superclase" : "Miembro";
-        case Tipo_Nodo::FunctionDef: {
-            Tipo_Nodo Clase = Arbol[Padre.Hijos[Indice]].Clase;
-            if (Clase == Tipo_Nodo::Parameter) return "Parámetro";
-            if (Clase == Tipo_Nodo::TypeName || Clase == Tipo_Nodo::ListType) return "Tipo de retorno";
-            return {};
+    std::string_view Rol_Nodo(AST& Arbol, Nodo_AST& Padre, size_t Indice)
+    {
+        switch (Padre.Clase)
+        {
+            case Tipo_Nodo::ClassDef:
+                if (Indice == 0)
+                {
+                    return "Superclase";
+                }
+                return "Miembro";
+            case Tipo_Nodo::FunctionDef:
+            {
+                Tipo_Nodo Clase = Arbol[Padre.Hijos[Indice]].Clase;
+                if (Clase == Tipo_Nodo::Parameter)
+                {
+                    return "Parámetro";
+                }
+                if (Clase == Tipo_Nodo::TypeName || Clase == Tipo_Nodo::ListType)
+                {
+                    return "Tipo de retorno";
+                }
+                return {};
+            }
+            case Tipo_Nodo::Parameter:
+                return "Tipo declarado";
+            case Tipo_Nodo::VarDef:
+                if (Indice == 0)
+                {
+                    return "Tipo declarado";
+                }
+                return "Valor inicial";
+            case Tipo_Nodo::ListType:
+                return "Tipo del elemento";
+            case Tipo_Nodo::If:
+                if (Indice == 0)
+                {
+                    return "Condición";
+                }
+                if (Indice == 1)
+                {
+                    return "Entonces";
+                }
+                return "Alternativa";
+            case Tipo_Nodo::Elif:
+                if (Indice == 0)
+                {
+                    return "Condición";
+                }
+                return "Entonces";
+            case Tipo_Nodo::While:
+                if (Indice == 0)
+                {
+                    return "Condición";
+                }
+                return "Cuerpo";
+            case Tipo_Nodo::For:
+                if (Indice == 0)
+                {
+                    return "Variable";
+                }
+                if (Indice == 1)
+                {
+                    return "Iterable";
+                }
+                return "Cuerpo";
+            case Tipo_Nodo::Assign:
+                if (Indice + 1 == Padre.Hijos.size())
+                {
+                    return "Valor";
+                }
+                return "Destino";
+            case Tipo_Nodo::Conditional:
+                if (Indice == 0)
+                {
+                    return "Condición";
+                }
+                if (Indice == 1)
+                {
+                    return "Si es verdadera";
+                }
+                return "Si es falsa";
+            case Tipo_Nodo::Binary:
+                if (Indice == 0)
+                {
+                    return "Izquierdo";
+                }
+                return "Derecho";
+            case Tipo_Nodo::Index:
+                if (Indice == 0)
+                {
+                    return "Colección";
+                }
+                return "Índice";
+            case Tipo_Nodo::Call:
+                if (Indice == 0)
+                {
+                    return "Invocable";
+                }
+                return "Argumento";
+            case Tipo_Nodo::Member:
+                return "Receptor";
+            case Tipo_Nodo::Return:
+                return "Valor de retorno";
+            default:
+                return {};
         }
-        case Tipo_Nodo::Parameter: return "Tipo declarado";
-        case Tipo_Nodo::VarDef: return Indice == 0 ? "Tipo declarado" : "Valor inicial";
-        case Tipo_Nodo::ListType: return "Tipo del elemento";
-        case Tipo_Nodo::If: return Indice == 0 ? "Condición" : Indice == 1 ? "Entonces" : "Alternativa";
-        case Tipo_Nodo::Elif: return Indice == 0 ? "Condición" : "Entonces";
-        case Tipo_Nodo::While: return Indice == 0 ? "Condición" : "Cuerpo";
-        case Tipo_Nodo::For: return Indice == 0 ? "Variable" : Indice == 1 ? "Iterable" : "Cuerpo";
-        case Tipo_Nodo::Assign: return Indice + 1 == Padre.Hijos.size() ? "Valor" : "Destino";
-        case Tipo_Nodo::Conditional: return Indice == 0 ? "Condición" : Indice == 1 ? "Si es verdadera" : "Si es falsa";
-        case Tipo_Nodo::Binary: return Indice == 0 ? "Izquierdo" : "Derecho";
-        case Tipo_Nodo::Index: return Indice == 0 ? "Colección" : "Índice";
-        case Tipo_Nodo::Call: return Indice == 0 ? "Invocable" : "Argumento";
-        case Tipo_Nodo::Member: return "Receptor";
-        case Tipo_Nodo::Return: return "Valor de retorno";
-        default: return {};
     }
-}
 
-std::vector<bool> Nodos_Visibles(AST& Arbol) {
-
-    std::vector<bool> Visibles(Arbol.Cantidad_Nodos() + 1);
-    Lista_Nodos Pendientes{Arbol.Raiz};
-    while (!Pendientes.empty()) {
-        Id_Nodo Id = Pendientes.back();
-        Pendientes.pop_back();
-        if (!Id || Visibles[Id]) continue;
-        Visibles[Id] = true;
-        const auto& Hijos = Arbol[Id].Hijos;
-        Pendientes.insert(Pendientes.end(), Hijos.begin(), Hijos.end());
-    }
-    return Visibles;
-}
-
-void Escribir_AST(std::ostream& Salida, AST& Arbol, const std::vector<bool>& Visibles) {
-
-    bool Parcial = Arbol.Raiz && Arbol[Arbol.Raiz].Incompleto;
-    Salida << ",\"Raiz\":" << Arbol.Raiz << ",\"Parcial\":" << (Parcial ? "true" : "false") << ",\"Nodos\":[null";
-    if (Arbol.Raiz) {
-        for (Id_Nodo Id = 1; Id <= Arbol.Cantidad_Nodos(); Id++) {
-            if (!Visibles[Id]) {
-                Salida << ",null";
+    std::vector<bool> Nodos_Visibles(AST& Arbol)
+    {
+        std::vector<bool> Visibles(Arbol.Cantidad_Nodos() + 1);
+        Lista_Nodos Pendientes{Arbol.Raiz};
+        while (!Pendientes.empty())
+        {
+            Id_Nodo Id = Pendientes.back();
+            Pendientes.pop_back();
+            if (!Id || Visibles[Id])
+            {
                 continue;
             }
-            Nodo_AST& Nodo = Arbol[Id];
-            Salida << ",{\"Clase\":";
-            Escribir_Texto(Salida, Nombre_Nodo(Nodo.Clase));
-            Salida << ",\"Grupo\":";
-            Escribir_Texto(Salida, Grupo_Nodo(Nodo.Clase));
-            Salida << ",\"Texto\":";
-            Escribir_Texto(Salida, Nodo.Texto);
-            Salida << ",\"Tipo\":";
-            Escribir_Texto(Salida, Nodo.Tipo);
-            Salida << ",\"Linea\":" << Nodo.Posicion.Linea << ",\"Columna\":" << Nodo.Posicion.Columna
-                   << ",\"Error\":" << (Nodo.Tiene_Error ? "true" : "false") << ",\"Hijos\":[";
-            for (size_t I = 0; I < Nodo.Hijos.size(); I++) {
-                if (I) Salida << ',';
-                Salida << '[' << Nodo.Hijos[I] << ',';
-                Escribir_Texto(Salida, Rol_Nodo(Arbol, Nodo, I));
-                Salida << ']';
+            Visibles[Id] = true;
+            const auto& Hijos = Arbol[Id].Hijos;
+            Pendientes.insert(Pendientes.end(), Hijos.begin(), Hijos.end());
+        }
+        return Visibles;
+    }
+
+    void Escribir_AST(std::ostream& Salida, AST& Arbol, const std::vector<bool>& Visibles)
+    {
+        bool Parcial = Arbol.Raiz && Arbol[Arbol.Raiz].Incompleto;
+        Salida << ",\"Raiz\":" << Arbol.Raiz << ",\"Parcial\":" << (Parcial ? "true" : "false")
+               << ",\"Nodos\":[null";
+        if (Arbol.Raiz)
+        {
+            for (Id_Nodo Id = 1; Id <= Arbol.Cantidad_Nodos(); Id++)
+            {
+                if (!Visibles[Id])
+                {
+                    Salida << ",null";
+                    continue;
+                }
+                Nodo_AST& Nodo = Arbol[Id];
+                Salida << ",{\"Clase\":";
+                Escribir_Texto(Salida, Nombre_Nodo(Nodo.Clase));
+                Salida << ",\"Grupo\":";
+                Escribir_Texto(Salida, Grupo_Nodo(Nodo.Clase));
+                Salida << ",\"Texto\":";
+                Escribir_Texto(Salida, Nodo.Texto);
+                Salida << ",\"Tipo\":";
+                Escribir_Texto(Salida, Nodo.Tipo);
+                Salida << ",\"Linea\":" << Nodo.Posicion.Linea << ",\"Columna\":" << Nodo.Posicion.Columna
+                       << ",\"Error\":" << (Nodo.Tiene_Error ? "true" : "false") << ",\"Hijos\":[";
+                for (size_t I = 0; I < Nodo.Hijos.size(); I++)
+                {
+                    if (I)
+                    {
+                        Salida << ',';
+                    }
+                    Salida << '[' << Nodo.Hijos[I] << ',';
+                    Escribir_Texto(Salida, Rol_Nodo(Arbol, Nodo, I));
+                    Salida << ']';
+                }
+                Salida << "]}\n";
             }
-            Salida << "]}\n";
         }
+
+        Salida << ']';
     }
 
-    Salida << ']';
-}
-
-void Escribir_Seguimiento(std::ostream& Salida, Seguimiento& Traza) {
-
-    Salida << ",\"Pasos\":[";
-    for (size_t I = 0; I < Traza.Pasos.size(); I++) {
-        if (I) Salida << ',';
-        Paso_Seguimiento& Paso = Traza.Pasos[I];
-        Escribir_Fila(Salida, {Paso.Fase, Paso.Estado, Paso.Simbolos, Paso.Entrada, Paso.Accion,
-                             Paso.Atributos, Paso.Accion_AST, Paso.Nodo ? std::to_string(Paso.Nodo) : "",
-                             Paso.Linea ? std::to_string(Paso.Linea) : ""});
-    }
-    Salida << ']';
-}
-
-void Escribir_Tablas(std::ostream& Salida, std::vector<Tabla_Ambito>& Tablas) {
-
-    Salida << ",\"Ambitos\":[";
-    for (size_t I = 0; I < Tablas.size(); I++) {
-        if (I) Salida << ',';
-        Tabla_Ambito& Tabla = Tablas[I];
-        Salida << "{\"Nombre\":";
-        Escribir_Texto(Salida, Tabla.Nombre);
-        Salida << ",\"Padre\":";
-        Escribir_Texto(Salida, Tabla.Padre);
-        Salida << ",\"Superclase\":";
-        Escribir_Texto(Salida, Tabla.Superclase);
-        Salida << ",\"Simbolos\":[";
-
-        for (size_t J = 0; J < Tabla.Simbolos.size(); J++) {
-            if (J) Salida << ',';
-            Fila_Symbol& Simbolo = Tabla.Simbolos[J];
-            Escribir_Fila(Salida, {Simbolo.Nombre, Simbolo.Categoria, Simbolo.Tipo, Simbolo.Declaracion, Simbolo.Origen});
+    void Escribir_Seguimiento(std::ostream& Salida, Seguimiento& Traza)
+    {
+        Salida << ",\"Pasos\":[";
+        for (size_t I = 0; I < Traza.Pasos.size(); I++)
+        {
+            if (I)
+            {
+                Salida << ',';
+            }
+            Paso_Seguimiento& Paso = Traza.Pasos[I];
+            Escribir_Fila(Salida,
+                          {Paso.Fase, Paso.Estado, Paso.Simbolos, Paso.Entrada, Paso.Accion, Paso.Atributos,
+                           Paso.Accion_AST, Paso.Nodo ? std::to_string(Paso.Nodo) : "",
+                           Paso.Linea ? std::to_string(Paso.Linea) : ""});
         }
-        Salida << "]}";
+        Salida << ']';
     }
 
-    Salida << ']';
-}
+    void Escribir_Tablas(std::ostream& Salida, std::vector<Tabla_Ambito>& Tablas)
+    {
+        Salida << ",\"Ambitos\":[";
+        for (size_t I = 0; I < Tablas.size(); I++)
+        {
+            if (I)
+            {
+                Salida << ',';
+            }
+            Tabla_Ambito& Tabla = Tablas[I];
+            Salida << "{\"Nombre\":";
+            Escribir_Texto(Salida, Tabla.Nombre);
+            Salida << ",\"Padre\":";
+            Escribir_Texto(Salida, Tabla.Padre);
+            Salida << ",\"Superclase\":";
+            Escribir_Texto(Salida, Tabla.Superclase);
+            Salida << ",\"Simbolos\":[";
 
-void Escribir_Errores(std::ostream& Salida, Seguimiento& Traza, const std::vector<bool>& Visibles) {
+            for (size_t J = 0; J < Tabla.Simbolos.size(); J++)
+            {
+                if (J)
+                {
+                    Salida << ',';
+                }
+                Fila_Symbol& Simbolo = Tabla.Simbolos[J];
+                Escribir_Fila(Salida, {Simbolo.Nombre, Simbolo.Categoria, Simbolo.Tipo, Simbolo.Declaracion,
+                                       Simbolo.Origen});
+            }
+            Salida << "]}";
+        }
 
-    Salida << ",\"Errores\":[";
-    for (size_t I = 0; I < Traza.Errores.size(); I++) {
-        if (I) Salida << ',';
-        Error_Compilacion& Error = Traza.Errores[I];
-        Salida << "{\"Fase\":";
-        Escribir_Texto(Salida, Error.Fase);
-        Salida << ",\"Mensaje\":";
-        Escribir_Texto(Salida, Error.Mensaje);
-        Salida << ",\"Linea\":" << Error.Posicion.Linea << ",\"Columna\":" << Error.Posicion.Columna
-               << ",\"Nodo\":" << (Visibles[Error.Nodo] ? Error.Nodo : 0) << '}';
+        Salida << ']';
     }
 
-    Salida << ']';
-}
+    void Escribir_Errores(std::ostream& Salida, Seguimiento& Traza, const std::vector<bool>& Visibles)
+    {
+        Salida << ",\"Errores\":[";
+        for (size_t I = 0; I < Traza.Errores.size(); I++)
+        {
+            if (I)
+            {
+                Salida << ',';
+            }
+            Error_Compilacion& Error = Traza.Errores[I];
+            Salida << "{\"Fase\":";
+            Escribir_Texto(Salida, Error.Fase);
+            Salida << ",\"Mensaje\":";
+            Escribir_Texto(Salida, Error.Mensaje);
+            Salida << ",\"Linea\":" << Error.Posicion.Linea << ",\"Columna\":" << Error.Posicion.Columna
+                   << ",\"Nodo\":" << (Visibles[Error.Nodo] ? Error.Nodo : 0) << '}';
+        }
 
-constexpr char Inicio_HTML[] = R"HTML(<!doctype html>
+        Salida << ']';
+    }
+
+    constexpr char Inicio_HTML[] = R"HTML(<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -337,7 +465,7 @@ constexpr char Inicio_HTML[] = R"HTML(<!doctype html>
 <script type="application/json" id="datos">
 )HTML";
 
-constexpr char Fin_HTML[] = R"HTML(
+    constexpr char Fin_HTML[] = R"HTML(
 </script>
 <script>
 'use strict';
@@ -896,15 +1024,17 @@ Dibujar_Errores();
 } // namespace
 
 void Guardar_Reporte(const std::filesystem::path& Ruta, std::string_view Archivo, std::string_view Estado,
-                     AST& Arbol, Seguimiento& Traza, std::vector<Tabla_Ambito>& Tablas) {
-
+                     AST& Arbol, Seguimiento& Traza, std::vector<Tabla_Ambito>& Tablas)
+{
     namespace fs = std::filesystem;
     fs::path Temporal = Ruta;
     Temporal += ".tmp." + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
 
-    try {
+    try
+    {
         std::ofstream Salida(Temporal, std::ios::binary);
-        if (!Salida) {
+        if (!Salida)
+        {
             throw std::runtime_error("No se pudo crear el reporte en '" + Ruta.string() + "'");
         }
 
@@ -920,11 +1050,14 @@ void Guardar_Reporte(const std::filesystem::path& Ruta, std::string_view Archivo
         Salida << '}' << Fin_HTML;
 
         Salida.close();
-        if (!Salida) {
+        if (!Salida)
+        {
             throw std::runtime_error("No se pudo guardar el reporte en '" + Ruta.string() + "'");
         }
         fs::rename(Temporal, Ruta);
-    } catch (...) {
+    }
+    catch (...)
+    {
         std::error_code Ignorar;
         fs::remove(Temporal, Ignorar);
         throw;

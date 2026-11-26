@@ -5,21 +5,27 @@
 #include <string>
 #include <vector>
 
-struct Diagnostico_Lexico {
+struct Diagnostico_Lexico
+{
     std::string Mensaje;
     int Linea;
     int Columna;
 };
 
-class Scanner {
-public:
+class Scanner
+{
+  public:
     Scanner(const std::string& filename);
     ~Scanner();
     std::vector<Token> scan();
     bool hasError() const;
-    const std::vector<Diagnostico_Lexico>& Errores() const { return Diagnosticos; }
 
-private:
+    const std::vector<Diagnostico_Lexico>& Errores() const
+    {
+        return Diagnosticos;
+    }
+
+  private:
     std::string filename;
     char* text_Arr;
     int index_pos;

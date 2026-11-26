@@ -11,8 +11,8 @@
 
 class Seguimiento;
 
-struct Fila_Symbol {
-
+struct Fila_Symbol
+{
     std::string Nombre;
     std::string Categoria;
     std::string Tipo;
@@ -20,29 +20,50 @@ struct Fila_Symbol {
     std::string Origen;
 };
 
-struct Tabla_Ambito {
-
+struct Tabla_Ambito
+{
     std::string Nombre;
     std::string Padre;
     std::string Superclase;
     std::vector<Fila_Symbol> Simbolos;
 };
 
-class Analisis_Semantico {
-
-public:
+class Analisis_Semantico
+{
+  public:
     Analisis_Semantico(AST& Arbol_Actual, Seguimiento& Seguimiento_Actual);
     void Analizar();
     std::vector<Tabla_Ambito> Obtener_Tablas();
 
-private:
-    enum class Clase_Symbol { Variable, Parametro, Clase, Atributo, Funcion, Metodo, Global, Nonlocal };
-    enum class Clase_Ambito { Global, Clase, Funcion };
-    enum class Uso { Valor, Destino, Invocable };
+  private:
+    enum class Clase_Symbol
+    {
+        Variable,
+        Parametro,
+        Clase,
+        Atributo,
+        Funcion,
+        Metodo,
+        Global,
+        Nonlocal
+    };
+    enum class Clase_Ambito
+    {
+        Global,
+        Clase,
+        Funcion
+    };
+    enum class Uso
+    {
+        Valor,
+        Destino,
+        Invocable
+    };
 
     struct Ambito;
-    struct Symbol {
 
+    struct Symbol
+    {
         Clase_Symbol Clase;
         std::string Tipo;
         Id_Nodo Nodo = 0;
@@ -50,8 +71,8 @@ private:
         const Ambito* Origen = nullptr;
     };
 
-    struct Ambito {
-
+    struct Ambito
+    {
         Clase_Ambito Clase;
         std::string Nombre;
         Ambito* Padre;
@@ -60,8 +81,8 @@ private:
         bool Declaraciones_Incompletas = false;
     };
 
-    struct Datos_Clase {
-
+    struct Datos_Clase
+    {
         Ambito* Miembros;
         std::string Padre;
         Id_Nodo Nodo;
@@ -88,7 +109,8 @@ private:
     bool Fragmento_Danado(Id_Nodo Id) const;
 
     const Symbol* Buscar(const Ambito& Actual, const std::string& Nombre, const Ambito*& Origen) const;
-    const Symbol* Buscar_Miembro(const std::string& Tipo, const std::string& Nombre, const Ambito*& Origen) const;
+    const Symbol* Buscar_Miembro(const std::string& Tipo, const std::string& Nombre,
+                                 const Ambito*& Origen) const;
     static const Symbol* Buscar_Local(const Ambito& Actual, const std::string& Nombre);
     static bool Es_Invocable(Clase_Symbol Clase);
     static std::string Tipo_Symbol(const Symbol& Simbolo);
@@ -97,7 +119,7 @@ private:
     bool Es_Compatible(const std::string& Obtenido, const std::string& Esperado) const;
     std::string Unir_Tipos(const std::string& Izquierdo, const std::string& Derecho) const;
     bool Comprobar_Tipo(Id_Nodo Nodo, const Ambito& Actual, const std::string& Obtenido,
-                const std::string& Esperado, const std::string& Contexto);
+                        const std::string& Esperado, const std::string& Contexto);
     bool Comprobar_Condicion(Id_Nodo Nodo, const Ambito& Actual);
     bool Comprobar_Bloque(const Lista_Nodos& Nodos, const Ambito& Actual, const std::string* Tipo_Retorno);
     bool Comprobar_Sentencia(Id_Nodo Nodo, const Ambito& Actual, const std::string* Tipo_Retorno);
@@ -108,7 +130,8 @@ private:
     std::string Inferir_Binaria(Id_Nodo Nodo, const Ambito& Actual);
     const Symbol* Resolver_Nodo(Id_Nodo Nodo, const Ambito& Actual, const Ambito*& Origen) const;
 
-    void Registrar(Id_Nodo Nodo, const Ambito& Actual, std::string_view Accion, std::string_view Detalle = {});
+    void Registrar(Id_Nodo Nodo, const Ambito& Actual, std::string_view Accion,
+                   std::string_view Detalle = {});
     std::string Registrar_Error(Id_Nodo Nodo, const Ambito& Actual, std::string Mensaje);
 };
 

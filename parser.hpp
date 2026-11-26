@@ -12,43 +12,57 @@ class AST;
 class Seguimiento;
 
 // --- CAMBIO: Estructura Token ---
-// Explicación: Antes pasábamos simples strings. Ahora guardamos el nombre, lexema, línea y columna 
+// Explicación: Antes pasábamos simples strings. Ahora guardamos el nombre, lexema, línea y columna
 // para poder decirle al usuario exactamente dónde se equivocó.
 
-struct Token {
+struct Token
+{
     std::string token_name;
     std::string lexeme;
     int line;
     int col;
 
     Token(std::string name = "", std::string lex = "", int l = 0, int c = 0)
-        : token_name(name), lexeme(lex), line(l), col(c) {}
+        : token_name(name), lexeme(lex), line(l), col(c)
+    {
+    }
 };
 
-struct Rule {
+struct Rule
+{
     int id;
     int lhs;
     std::vector<int> rhs;
 };
 
-struct Item {
+struct Item
+{
     int rule_id;
     int dot;
     int la_id;
 
-    bool operator<(const Item& other) const {
-        if (rule_id != other.rule_id) return rule_id < other.rule_id;
-        if (dot != other.dot) return dot < other.dot;
+    bool operator<(const Item& other) const
+    {
+        if (rule_id != other.rule_id)
+        {
+            return rule_id < other.rule_id;
+        }
+        if (dot != other.dot)
+        {
+            return dot < other.dot;
+        }
         return la_id < other.la_id;
     }
 
-    bool operator==(const Item& other) const {
+    bool operator==(const Item& other) const
+    {
         return rule_id == other.rule_id && dot == other.dot && la_id == other.la_id;
     }
 };
 
-class Grammar {
-public:
+class Grammar
+{
+  public:
     std::vector<std::string> symbols;
     std::map<std::string, int> symbol_to_id;
     std::set<int> nonterminal_ids;
@@ -72,7 +86,8 @@ public:
     void printGrammar() const;
 };
 
-struct ConflictReport {
+struct ConflictReport
+{
     int state;
     int terminal_id;
     std::string action1;
@@ -80,8 +95,9 @@ struct ConflictReport {
     std::vector<Item> items;
 };
 
-class LR1Builder {
-public:
+class LR1Builder
+{
+  public:
     Grammar g;
     std::map<int, std::set<int>> first_sets;
 
